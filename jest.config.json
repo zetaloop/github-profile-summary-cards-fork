@@ -5,6 +5,9 @@
     "transform": {
         "^.+\\.ts$": "ts-jest"
     },
+    "moduleNameMapper": {
+        "^axios$": "axios/dist/node/axios.cjs"
+    },
     "setupFilesAfterEnv": [],
     "testMatch": ["**/*.test.ts"],
     "verbose": true,
