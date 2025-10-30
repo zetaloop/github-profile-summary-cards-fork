@@ -24,18 +24,21 @@ export const getReposPerLanguageSVGWithThemeName = async function (
 };
 
 const getReposPerLanguageSVG = function (
-    langData: { name: string; value: number; color: string }[],
+    langData: {name: string; value: number; color: string}[],
     themeName: string,
     customTheme: Theme | undefined
 ) {
-    let theme = { ...ThemeMap.get(themeName)! };
+    const theme = {...ThemeMap.get(themeName)!};
     if (customTheme !== undefined) {
-        if (customTheme.title) theme.title = "#" + customTheme.title;
-        if (customTheme.text) theme.text = "#" + customTheme.text;
-        if (customTheme.background) theme.background = "#" + customTheme.background;
-        if (customTheme.stroke) { theme.stroke = "#" + customTheme.stroke; theme.strokeOpacity = 1; }
-        if (customTheme.icon) theme.icon = "#" + customTheme.icon;
-        if (customTheme.chart) theme.chart = "#" + customTheme.chart;
+        if (customTheme.title) theme.title = '#' + customTheme.title;
+        if (customTheme.text) theme.text = '#' + customTheme.text;
+        if (customTheme.background) theme.background = '#' + customTheme.background;
+        if (customTheme.stroke) {
+            theme.stroke = '#' + customTheme.stroke;
+            theme.strokeOpacity = 1;
+        }
+        if (customTheme.icon) theme.icon = '#' + customTheme.icon;
+        if (customTheme.chart) theme.chart = '#' + customTheme.chart;
     }
     const svgString = createDonutChartCard('Top Languages by Repo', langData, theme);
     return svgString;
