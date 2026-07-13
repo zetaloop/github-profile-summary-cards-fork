@@ -1,4 +1,4 @@
-import {ThemeMap, Theme} from '../const/theme';
+import {ThemeMap} from '../const/theme';
 import {Icon} from '../const/icon';
 import {abbreviateNumber} from 'js-abbreviation-number';
 import {getProfileDetails, ProfileDetails, ProfileContribution} from '../github-api/profile-details';
@@ -6,59 +6,66 @@ import {getContributionByYear} from '../github-api/contributions-by-year';
 import {createDetailCard} from '../templates/profile-details-card';
 import {writeSVG} from '../utils/file-writer';
 
-export const createProfileDetailsCard = async function (username: string) {
-    const profileDetailsData = await getProfileDetailsData(username);
+/**
+ * Creates a Profile Details Card SVG.
+ *
+ * @param {string} username - The GitHub username.
+ * @param {string} token - The GitHub API token.
+ * @return {Promise<void>}
+ */
+// Returns the title to render on the profile-details card. When the combined
+// `${login} (${name})` would visually run into the chart area, breaks between
+// the login and the (name) so they render on two stacked lines. Never splits
+// within the login or within the name itself.
+const TITLE_SOFT_WRAP_THRESHOLD = 25;
+const buildProfileDetailsTitle = function (username: string, name: string | null): string {
+    if (name == null) {
+        return username;
+    }
+    const oneLine = `${username} (${name})`;
+    return oneLine.length > TITLE_SOFT_WRAP_THRESHOLD ? `${username}\n(${name})` : oneLine;
+};
+
+export const createProfileDetailsCard = async function (username: string, token: string) {
+    const profileDetailsData = await getProfileDetailsData(username, token);
     for (const themeName of ThemeMap.keys()) {
-        const title =
-            profileDetailsData[0].name == null ? `${username}` : `${username} (${profileDetailsData[0].name})`;
+        const title = buildProfileDetailsTitle(username, profileDetailsData[0].name);
         const svgString = getProfileDetailsSVG(
             title,
             profileDetailsData[0].contributions,
             profileDetailsData[1],
-            themeName,
-            undefined
+            themeName
         );
         // output to folder, use 0- prefix for sort in preview
         writeSVG(themeName, '0-profile-details', svgString);
     }
 };
+/**
+ * Generates the SVG for the Profile Details Card.
+ *
+ * @param {string} username - The GitHub username.
+ * @param {string} themeName - The card theme.
+ * @param {string} token - The GitHub API token.
+ * @return {Promise<string>} The SVG string.
+ */
 export const getProfileDetailsSVGWithThemeName = async function (
     username: string,
     themeName: string,
-    customTheme: Theme
+    token: string
 ): Promise<string> {
     if (!ThemeMap.has(themeName)) throw new Error('Theme does not exist');
-    const profileDetailsData = await getProfileDetailsData(username);
-    const title = profileDetailsData[0].name == null ? `${username}` : `${username} (${profileDetailsData[0].name})`;
-    return getProfileDetailsSVG(
-        title,
-        profileDetailsData[0].contributions,
-        profileDetailsData[1],
-        themeName,
-        customTheme
-    );
+    const profileDetailsData = await getProfileDetailsData(username, token);
+    const title = buildProfileDetailsTitle(username, profileDetailsData[0].name);
+    return getProfileDetailsSVG(title, profileDetailsData[0].contributions, profileDetailsData[1], themeName);
 };
 
 const getProfileDetailsSVG = function (
     title: string,
     contributionsData: ProfileContribution[],
     userDetails: {index: number; icon: string; name: string; value: string}[],
-    themeName: string,
-    customTheme: Theme | undefined
+    themeName: string
 ): string {
-    const theme = {...ThemeMap.get(themeName)!};
-    if (customTheme !== undefined) {
-        if (customTheme.title) theme.title = '#' + customTheme.title;
-        if (customTheme.text) theme.text = '#' + customTheme.text;
-        if (customTheme.background) theme.background = '#' + customTheme.background;
-        if (customTheme.stroke) {
-            theme.stroke = '#' + customTheme.stroke;
-            theme.strokeOpacity = 1;
-        }
-        if (customTheme.icon) theme.icon = '#' + customTheme.icon;
-        if (customTheme.chart) theme.chart = '#' + customTheme.chart;
-    }
-    const svgString = createDetailCard(`${title}`, userDetails, contributionsData, theme);
+    const svgString = createDetailCard(`${title}`, userDetails, contributionsData, ThemeMap.get(themeName)!);
     return svgString;
 };
 
@@ -76,24 +83,29 @@ const getProfileDateJoined = function (profileDetails: ProfileDetails): string {
     return years
         ? `${years} year${s(years)} ago`
         : months
-        ? `${months} month${s(months)} ago`
-        : `${days} day${s(days)} ago`;
+          ? `${months} month${s(months)} ago`
+          : `${days} day${s(days)} ago`;
 };
 
 const getProfileDetailsData = async function (
-    username: string
+    username: string,
+    token: string
 ): Promise<[ProfileDetails, {index: number; icon: string; name: string; value: string}[]]> {
-    const profileDetails = await getProfileDetails(username);
+    const profileDetails = await getProfileDetails(username, token);
     let totalContributions = 0;
     if (process.env.VERCEL) {
         // If running on vercel, we only calculate for last 1 year to avoid hobby timeout limit
-        profileDetails.contributionYears = profileDetails.contributionYears.slice(0, 1);
-        for (const year of profileDetails.contributionYears) {
-            totalContributions += (await getContributionByYear(username, year)).totalContributions;
+        // Sort years descending to ensure we get the latest
+        profileDetails.contributionYears.sort((a, b) => b - a);
+        const latestYear = profileDetails.contributionYears[0];
+
+        if (latestYear !== undefined) {
+            profileDetails.contributionYears = [latestYear];
+            totalContributions += (await getContributionByYear(username, latestYear, token)).totalContributions;
         }
     } else {
         for (const year of profileDetails.contributionYears) {
-            totalContributions += (await getContributionByYear(username, year)).totalContributions;
+            totalContributions += (await getContributionByYear(username, year, token)).totalContributions;
         }
     }
 

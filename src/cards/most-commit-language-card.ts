@@ -1,12 +1,12 @@
-import {ThemeMap, Theme} from '../const/theme';
+import {ThemeMap} from '../const/theme';
 import {getCommitLanguage, CommitLanguages} from '../github-api/commits-per-language';
 import {createDonutChartCard} from '../templates/donut-chart-card';
 import {writeSVG} from '../utils/file-writer';
 
-export const createCommitsPerLanguageCard = async function (username: string, exclude: Array<string>) {
-    const statsData = await getCommitsLanguageData(username, exclude);
+export const createCommitsPerLanguageCard = async function (username: string, exclude: Array<string>, token: string) {
+    const statsData = await getCommitsLanguageData(username, exclude, token);
     for (const themeName of ThemeMap.keys()) {
-        const svgString = getCommitsLanguageSVG(statsData, themeName, undefined);
+        const svgString = getCommitsLanguageSVG(statsData, themeName);
         // output to folder, use 2- prefix for sort in preview
         writeSVG(themeName, '2-most-commit-language', svgString);
     }
@@ -15,57 +15,43 @@ export const createCommitsPerLanguageCard = async function (username: string, ex
 export const getCommitsLanguageSVGWithThemeName = async function (
     username: string,
     themeName: string,
-    customTheme: Theme,
-    exclude: Array<string>
+    exclude: Array<string>,
+    token: string
 ): Promise<string> {
     if (!ThemeMap.has(themeName)) throw new Error('Theme does not exist');
-    const langData = await getCommitsLanguageData(username, exclude);
-    return getCommitsLanguageSVG(langData, themeName, customTheme);
+    const langData = await getCommitsLanguageData(username, exclude, token);
+    return getCommitsLanguageSVG(langData, themeName);
 };
 
 const getCommitsLanguageSVG = function (
     langData: {name: string; value: number; color: string}[],
-    themeName: string,
-    customTheme: Theme | undefined
+    themeName: string
 ): string {
     if (langData.length == 0) {
+        // Generic placeholder that fits inside the donut chart's legend space (~18 chars
+        // per line at 14-px font); avoids "in the last year"/"for this organization"
+        // overflows into the pie graphic for accounts with no recent commits.
         langData.push({
             name: 'There are no',
             value: 1,
             color: '#586e75'
         });
         langData.push({
-            name: 'any commits',
-            value: 1,
-            color: '#586e75'
-        });
-        langData.push({
-            name: 'in the last year',
+            name: 'commits to show',
             value: 1,
             color: '#586e75'
         });
     }
-    const theme = {...ThemeMap.get(themeName)!};
-    if (customTheme !== undefined) {
-        if (customTheme.title) theme.title = '#' + customTheme.title;
-        if (customTheme.text) theme.text = '#' + customTheme.text;
-        if (customTheme.background) theme.background = '#' + customTheme.background;
-        if (customTheme.stroke) {
-            theme.stroke = '#' + customTheme.stroke;
-            theme.strokeOpacity = 1;
-        }
-        if (customTheme.icon) theme.icon = '#' + customTheme.icon;
-        if (customTheme.chart) theme.chart = '#' + customTheme.chart;
-    }
-    const svgString = createDonutChartCard('Top Languages by Commit', langData, theme);
+    const svgString = createDonutChartCard('Top Languages by Commit', langData, ThemeMap.get(themeName)!);
     return svgString;
 };
 
 const getCommitsLanguageData = async function (
     username: string,
-    exclude: Array<string>
+    exclude: Array<string>,
+    token: string
 ): Promise<{name: string; value: number; color: string}[]> {
-    const commitLanguages: CommitLanguages = await getCommitLanguage(username, exclude);
+    const commitLanguages: CommitLanguages = await getCommitLanguage(username, exclude, token);
     let langData = [];
 
     // make a pie data

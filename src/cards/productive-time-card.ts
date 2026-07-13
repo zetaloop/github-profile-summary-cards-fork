@@ -1,12 +1,12 @@
-import {ThemeMap, Theme} from '../const/theme';
+import {ThemeMap} from '../const/theme';
 import {getProductiveTime} from '../github-api/productive-time';
 import {createProductiveCard as productiveTimeCard} from '../templates/productive-time-card';
 import {writeSVG} from '../utils/file-writer';
 
-export const createProductiveTimeCard = async function (username: string, utcOffset: number) {
-    const productiveTimeData = await getProductiveTimeData(username, utcOffset);
+export const createProductiveTimeCard = async function (username: string, utcOffset: number, token: string) {
+    const productiveTimeData = await getProductiveTimeData(username, utcOffset, token);
     for (const themeName of ThemeMap.keys()) {
-        const svgString = getProductiveTimeSVG(productiveTimeData, themeName, undefined, utcOffset);
+        const svgString = getProductiveTimeSVG(productiveTimeData, themeName, utcOffset);
         // output to folder, use 4- prefix for sort in preview
         writeSVG(themeName, '4-productive-time', svgString);
     }
@@ -15,33 +15,20 @@ export const createProductiveTimeCard = async function (username: string, utcOff
 export const getProductiveTimeSVGWithThemeName = async function (
     username: string,
     themeName: string,
-    customTheme: Theme,
-    utcOffset: number
+    utcOffset: number,
+    token: string
 ) {
     if (!ThemeMap.has(themeName)) throw new Error('Theme does not exist');
-    const productiveTimeData = await getProductiveTimeData(username, utcOffset);
-    return getProductiveTimeSVG(productiveTimeData, themeName, customTheme, utcOffset);
+    const productiveTimeData = await getProductiveTimeData(username, utcOffset, token);
+    return getProductiveTimeSVG(productiveTimeData, themeName, utcOffset);
 };
 
 const getProductiveTimeSVG = function (
     productiveTimeData: Array<number>,
     themeName: string,
-    customTheme: Theme | undefined,
     utcOffset: number
 ): string {
-    const theme = {...ThemeMap.get(themeName)!};
-    if (customTheme !== undefined) {
-        if (customTheme.title) theme.title = '#' + customTheme.title;
-        if (customTheme.text) theme.text = '#' + customTheme.text;
-        if (customTheme.background) theme.background = '#' + customTheme.background;
-        if (customTheme.stroke) {
-            theme.stroke = '#' + customTheme.stroke;
-            theme.strokeOpacity = 1;
-        }
-        if (customTheme.icon) theme.icon = '#' + customTheme.icon;
-        if (customTheme.chart) theme.chart = '#' + customTheme.chart;
-    }
-    const svgString = productiveTimeCard(productiveTimeData, theme, utcOffset);
+    const svgString = productiveTimeCard(productiveTimeData, ThemeMap.get(themeName)!, utcOffset);
     return svgString;
 };
 
@@ -63,11 +50,15 @@ const adjustOffset = function (offset: number, RoundRobin: {offset: number}): nu
     }
 };
 
-const getProductiveTimeData = async function (username: string, utcOffset: number): Promise<Array<number>> {
+const getProductiveTimeData = async function (
+    username: string,
+    utcOffset: number,
+    token: string
+): Promise<Array<number>> {
     const until = new Date();
     const since = new Date();
     since.setFullYear(since.getFullYear() - 1);
-    const productiveTime = await getProductiveTime(username, until.toISOString(), since.toISOString());
+    const productiveTime = await getProductiveTime(username, until.toISOString(), since.toISOString(), token);
     // process productiveTime
     const chartData = new Array(24);
     chartData.fill(0);

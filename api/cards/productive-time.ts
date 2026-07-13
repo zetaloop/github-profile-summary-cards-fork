@@ -1,22 +1,15 @@
 import {getProductiveTimeSVGWithThemeName} from '../../src/cards/productive-time-card';
-import {changToNextGitHubToken} from '../utils/github-token-updater';
+import {getOwnerType} from '../../src/github-api/owner-type';
+import {getGitHubToken} from '../utils/github-token-updater';
 import {getErrorMsgCard} from '../utils/error-card';
-import {Theme} from '../../src/const/theme';
+import {sendAnalytics} from '../../src/utils/analytics';
+import {CONST_CACHE_CONTROL} from '../../src/const/cache';
+import {resolveThemeName} from '../../src/const/theme';
 import type {VercelRequest, VercelResponse} from '@vercel/node';
 
 export default async (req: VercelRequest, res: VercelResponse) => {
-    const {
-        username,
-        theme = 'default',
-        utcOffset = '0',
-        title_color = '',
-        text_color = '',
-        bg_color = '',
-        border_color = '',
-        icon_color = '',
-        chart_color = ''
-    } = req.query;
-    if (typeof theme !== 'string') {
+    const {username, theme: rawTheme = 'default', utcOffset = '0'} = req.query;
+    if (typeof rawTheme !== 'string') {
         res.status(400).send('theme must be a string');
         return;
     }
@@ -28,57 +21,45 @@ export default async (req: VercelRequest, res: VercelResponse) => {
         res.status(400).send('utcOffset must be a string');
         return;
     }
-    if (typeof title_color !== 'string') {
-        res.status(400).send('title_color must be a string');
-        return;
-    }
-    if (typeof text_color !== 'string') {
-        res.status(400).send('text_color must be a string');
-        return;
-    }
-    if (typeof bg_color !== 'string') {
-        res.status(400).send('bg_color must be a string');
-        return;
-    }
-    if (typeof border_color !== 'string') {
-        res.status(400).send('border_color must be a string');
-        return;
-    }
-    if (typeof icon_color !== 'string') {
-        res.status(400).send('icon_color must be a string');
-        return;
-    }
-    if (typeof chart_color !== 'string') {
-        res.status(400).send('chart_color must be a string');
-        return;
-    }
-    let customTheme = new Theme(
-        title_color,
-        text_color,
-        bg_color,
-        border_color,
-        -1,  // strokeOpacity is not used in custom themes
-        icon_color,
-        chart_color
-    );
-
+    const theme = resolveThemeName(rawTheme);
     try {
+        let token = getGitHubToken(0);
         let tokenIndex = 0;
         while (true) {
             try {
-                const cardSVG = await getProductiveTimeSVGWithThemeName(username, theme, customTheme, Number(utcOffset));
+                const ownerType = await getOwnerType(username, token);
+                if (ownerType === 'Organization') {
+                    res.setHeader('Content-Type', 'image/svg+xml');
+                    res.setHeader('Cache-Control', CONST_CACHE_CONTROL);
+                    res.send(
+                        getErrorMsgCard(
+                            'The Productive Time card is not available for organization accounts. This card relies on per-user contribution data that GitHub does not expose at the organization level.',
+                            theme
+                        )
+                    );
+                    return;
+                }
+                const cardSVG = await getProductiveTimeSVGWithThemeName(username, theme, Number(utcOffset), token);
                 res.setHeader('Content-Type', 'image/svg+xml');
+                res.setHeader('Cache-Control', CONST_CACHE_CONTROL);
                 res.send(cardSVG);
+                // Fire-and-forget: don't block the response on analytics
+                void sendAnalytics('productive_time_card', {username, theme, utcOffset}, req.headers);
                 return;
             } catch (err: any) {
                 console.log(err.message);
                 // We update github token and try again, until getNextGitHubToken throw an Error
-                changToNextGitHubToken(tokenIndex);
-                tokenIndex += 1;
+                if (err.response && (err.response.status === 403 || err.response.status === 401)) {
+                    tokenIndex += 1;
+                    token = getGitHubToken(tokenIndex);
+                } else {
+                    throw err;
+                }
             }
         }
     } catch (err: any) {
         console.log(err);
+        res.setHeader('Content-Type', 'image/svg+xml');
         res.send(getErrorMsgCard(err.message, theme));
     }
 };

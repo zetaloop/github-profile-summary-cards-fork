@@ -1,6 +1,5 @@
 import {Card} from './card';
 import * as d3 from 'd3';
-import moment from 'moment';
 import {Theme} from '../const/theme';
 
 export function createDetailCard(
@@ -12,7 +11,8 @@ export function createDetailCard(
         value: string;
     }[],
     contributionsData: {contributionCount: number; date: Date}[],
-    theme: Theme
+    theme: Theme,
+    chartCaption: string = 'contributions in the last year'
 ) {
     const card = new Card(title, 700, 200, theme);
     const svg = card.getSVG();
@@ -50,9 +50,11 @@ export function createDetailCard(
 
     // process chart data
     const lineChartData: {contributionCount: number; date: Date}[] = [];
+    const formatter = d3.timeFormat('%Y-%m');
     for (const data of contributionsData) {
-        const formatDate = moment(data.date).format('YYYY-MM');
-        data.date = new Date(formatDate);
+        const formatDate = formatter(data.date);
+        // Fix: Append day to ensure valid ISO 8601 date (YYYY-MM-DD) for reliable parsing
+        data.date = new Date(`${formatDate}-01`);
         const lastIndex = lineChartData.length - 1;
         if (lineChartData.length == 0 || lineChartData[lastIndex].date.getTime() !== data.date.getTime()) {
             lineChartData.push({
@@ -141,12 +143,14 @@ export function createDetailCard(
         .attr('transform', `translate(${chartWidth - chartRightMargin},0)`)
         .call(d3.axisRight(y).ticks(8));
 
-    // hard code this coordinate becuz I'm too lazy
+    // Caption goes above the chart for short titles, below the chart for tall/long titles
+    // (multi-line titles push the chart down and the caption would otherwise overlap them).
+    const titleIsTall = title.includes('\n') || title.length > 30;
     chartPanel
         .append('g')
         .append('text')
-        .text('contributions in the last year')
-        .attr('y', title.length > 30 ? 140 : -15) // if the title is too long, then put text to the bottom
+        .text(chartCaption)
+        .attr('y', titleIsTall ? 140 : -15)
         .attr('x', 230)
         .style('fill', theme.text)
         .style('font-size', `10px`);
