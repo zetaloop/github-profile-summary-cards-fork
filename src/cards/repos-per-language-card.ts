@@ -1,4 +1,4 @@
-import {ThemeMap} from '../const/theme';
+import {ThemeMap, ThemeColorOverride, resolveTheme} from '../const/theme';
 import {getRepoLanguages} from '../github-api/repos-per-language';
 import {createDonutChartCard} from '../templates/donut-chart-card';
 import {writeSVG} from '../utils/file-writer';
@@ -16,15 +16,20 @@ export const getReposPerLanguageSVGWithThemeName = async function (
     username: string,
     themeName: string,
     exclude: Array<string>,
-    token: string
+    token: string,
+    override?: ThemeColorOverride
 ) {
     if (!ThemeMap.has(themeName)) throw new Error('Theme does not exist');
     const langData = await getRepoLanguageData(username, exclude, token);
-    return getReposPerLanguageSVG(langData, themeName);
+    return getReposPerLanguageSVG(langData, themeName, override);
 };
 
-const getReposPerLanguageSVG = function (langData: {name: string; value: number; color: string}[], themeName: string) {
-    const svgString = createDonutChartCard('Top Languages by Repo', langData, ThemeMap.get(themeName)!);
+const getReposPerLanguageSVG = function (
+    langData: {name: string; value: number; color: string}[],
+    themeName: string,
+    override?: ThemeColorOverride
+) {
+    const svgString = createDonutChartCard('Top Languages by Repo', langData, resolveTheme(themeName, override));
     return svgString;
 };
 

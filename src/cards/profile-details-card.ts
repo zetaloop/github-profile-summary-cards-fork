@@ -1,4 +1,4 @@
-import {ThemeMap} from '../const/theme';
+import {ThemeMap, ThemeColorOverride, resolveTheme} from '../const/theme';
 import {Icon} from '../const/icon';
 import {abbreviateNumber} from 'js-abbreviation-number';
 import {getProfileDetails, ProfileDetails, ProfileContribution} from '../github-api/profile-details';
@@ -46,26 +46,29 @@ export const createProfileDetailsCard = async function (username: string, token:
  * @param {string} username - The GitHub username.
  * @param {string} themeName - The card theme.
  * @param {string} token - The GitHub API token.
+ * @param {ThemeColorOverride} [override] - Optional per-request color overrides.
  * @return {Promise<string>} The SVG string.
  */
 export const getProfileDetailsSVGWithThemeName = async function (
     username: string,
     themeName: string,
-    token: string
+    token: string,
+    override?: ThemeColorOverride
 ): Promise<string> {
     if (!ThemeMap.has(themeName)) throw new Error('Theme does not exist');
     const profileDetailsData = await getProfileDetailsData(username, token);
     const title = buildProfileDetailsTitle(username, profileDetailsData[0].name);
-    return getProfileDetailsSVG(title, profileDetailsData[0].contributions, profileDetailsData[1], themeName);
+    return getProfileDetailsSVG(title, profileDetailsData[0].contributions, profileDetailsData[1], themeName, override);
 };
 
 const getProfileDetailsSVG = function (
     title: string,
     contributionsData: ProfileContribution[],
     userDetails: {index: number; icon: string; name: string; value: string}[],
-    themeName: string
+    themeName: string,
+    override?: ThemeColorOverride
 ): string {
-    const svgString = createDetailCard(`${title}`, userDetails, contributionsData, ThemeMap.get(themeName)!);
+    const svgString = createDetailCard(`${title}`, userDetails, contributionsData, resolveTheme(themeName, override));
     return svgString;
 };
 

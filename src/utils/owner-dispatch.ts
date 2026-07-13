@@ -1,3 +1,4 @@
+import {ThemeColorOverride} from '../const/theme';
 import {getProfileDetailsSVGWithThemeName} from '../cards/profile-details-card';
 import {getReposPerLanguageSVGWithThemeName} from '../cards/repos-per-language-card';
 import {getCommitsLanguageSVGWithThemeName} from '../cards/most-commit-language-card';
@@ -29,10 +30,15 @@ async function dispatch(userRender: () => Promise<string>, orgRender: () => Prom
     }
 }
 
-export const dispatchProfileDetailsSVG = function (login: string, themeName: string, token: string): Promise<string> {
+export const dispatchProfileDetailsSVG = function (
+    login: string,
+    themeName: string,
+    token: string,
+    override?: ThemeColorOverride
+): Promise<string> {
     return dispatch(
-        () => getProfileDetailsSVGWithThemeName(login, themeName, token),
-        () => getOrganizationProfileDetailsSVGWithThemeName(login, themeName, token)
+        () => getProfileDetailsSVGWithThemeName(login, themeName, token, override),
+        () => getOrganizationProfileDetailsSVGWithThemeName(login, themeName, token, override)
     );
 };
 
@@ -40,11 +46,12 @@ export const dispatchReposPerLanguageSVG = function (
     login: string,
     themeName: string,
     exclude: Array<string>,
-    token: string
+    token: string,
+    override?: ThemeColorOverride
 ): Promise<string> {
     return dispatch(
-        () => getReposPerLanguageSVGWithThemeName(login, themeName, exclude, token),
-        () => getOrganizationReposPerLanguageSVGWithThemeName(login, themeName, exclude, token)
+        () => getReposPerLanguageSVGWithThemeName(login, themeName, exclude, token, override),
+        () => getOrganizationReposPerLanguageSVGWithThemeName(login, themeName, exclude, token, override)
     );
 };
 
@@ -52,17 +59,23 @@ export const dispatchMostCommitLanguageSVG = function (
     login: string,
     themeName: string,
     exclude: Array<string>,
-    token: string
+    token: string,
+    override?: ThemeColorOverride
 ): Promise<string> {
     return dispatch(
-        () => getCommitsLanguageSVGWithThemeName(login, themeName, exclude, token),
-        () => getOrganizationCommitsLanguageSVGWithThemeName(login, themeName, exclude, token)
+        () => getCommitsLanguageSVGWithThemeName(login, themeName, exclude, token, override),
+        () => getOrganizationCommitsLanguageSVGWithThemeName(login, themeName, exclude, token, override)
     );
 };
 
-export const dispatchStatsSVG = function (login: string, themeName: string, token: string): Promise<string> {
+export const dispatchStatsSVG = function (
+    login: string,
+    themeName: string,
+    token: string,
+    override?: ThemeColorOverride
+): Promise<string> {
     return dispatch(
-        () => getStatsSVGWithThemeName(login, themeName, token),
-        () => getOrganizationStatsSVGWithThemeName(login, themeName, token)
+        () => getStatsSVGWithThemeName(login, themeName, token, override),
+        () => getOrganizationStatsSVGWithThemeName(login, themeName, token, override)
     );
 };

@@ -52,6 +52,18 @@
 
 > **Hosted API 與 GitHub Action 的差異。** 在 hosted API(`*.vercel.app`)上,語言與 stats 卡片會彙整你**依 star 排序的前 100 個 repo** —— 這是為了讓每次請求不超過 serverless 時間限制、也減輕共用額度的負擔。**GitHub Action** 用你自己的 token、沒有時間限制,所以會涵蓋**全部** repo。(repo 總數兩種方式都是準確的。)
 
+## 自訂顏色 (Custom colors)
+
+每個卡片端點都接受以下選用參數,用來覆蓋所選 `theme` 的個別顏色:
+
+`title_color`、`text_color`、`bg_color`、`border_color`、`icon_color`、`chart_color`
+
+值是**不含** `#` 的 hex —— 3、4、6 或 8 位(4/8 位含 alpha),不符合則忽略。例如 `dark` 主題配透明背景:
+
+`http://github-profile-summary-cards.vercel.app/api/cards/stats?username=vn7n24fzkq&theme=dark&bg_color=00000000`
+
+解決 [#110](https://github.com/vn7n24fzkq/github-profile-summary-cards/issues/110) 與 [#152](https://github.com/vn7n24fzkq/github-profile-summary-cards/issues/152)。
+
 ---
 
 ## 設定 GitHub Token

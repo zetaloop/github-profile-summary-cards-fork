@@ -3,7 +3,7 @@ import {getGitHubToken} from '../utils/github-token-updater';
 import {getErrorMsgCard} from '../utils/error-card';
 import {sendAnalytics} from '../../src/utils/analytics';
 import {CONST_CACHE_CONTROL} from '../../src/const/cache';
-import {resolveThemeName} from '../../src/const/theme';
+import {resolveThemeName, parseThemeColorOverride} from '../../src/const/theme';
 import type {VercelRequest, VercelResponse} from '@vercel/node';
 
 export default async (req: VercelRequest, res: VercelResponse) => {
@@ -17,12 +17,13 @@ export default async (req: VercelRequest, res: VercelResponse) => {
         return;
     }
     const theme = resolveThemeName(rawTheme);
+    const override = parseThemeColorOverride(req.query);
     try {
         let token = getGitHubToken(0);
         let tokenIndex = 0;
         while (true) {
             try {
-                const cardSVG = await dispatchStatsSVG(username, theme, token);
+                const cardSVG = await dispatchStatsSVG(username, theme, token, override);
                 res.setHeader('Content-Type', 'image/svg+xml');
                 res.setHeader('Cache-Control', CONST_CACHE_CONTROL);
                 res.send(cardSVG);

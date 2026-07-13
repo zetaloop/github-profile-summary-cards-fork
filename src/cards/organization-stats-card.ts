@@ -1,4 +1,4 @@
-import {ThemeMap} from '../const/theme';
+import {ThemeMap, ThemeColorOverride, resolveTheme} from '../const/theme';
 import {Icon} from '../const/icon';
 import {abbreviateNumber} from 'js-abbreviation-number';
 import {getOrganizationDetails} from '../github-api/organization-details';
@@ -14,18 +14,24 @@ export const createOrganizationStatsCard = async function (login: string, token:
     }
 };
 
-export const getOrganizationStatsSVGWithThemeName = async function (login: string, themeName: string, token: string) {
+export const getOrganizationStatsSVGWithThemeName = async function (
+    login: string,
+    themeName: string,
+    token: string,
+    override?: ThemeColorOverride
+) {
     if (!ThemeMap.has(themeName)) throw new Error('Theme does not exist');
     const statsData = await getOrganizationStatsData(login, token);
-    return getOrganizationStatsSVG(statsData, themeName);
+    return getOrganizationStatsSVG(statsData, themeName, override);
 };
 
 const getOrganizationStatsSVG = function (
     statsData: {index: number; icon: string; name: string; value: string}[],
-    themeName: string
+    themeName: string,
+    override?: ThemeColorOverride
 ) {
     const title = 'Stats';
-    const svgString = statsCard(`${title}`, statsData, ThemeMap.get(themeName)!);
+    const svgString = statsCard(`${title}`, statsData, resolveTheme(themeName, override));
     return svgString;
 };
 

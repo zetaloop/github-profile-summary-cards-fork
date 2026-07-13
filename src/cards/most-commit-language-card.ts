@@ -1,4 +1,4 @@
-import {ThemeMap} from '../const/theme';
+import {ThemeMap, ThemeColorOverride, resolveTheme} from '../const/theme';
 import {getCommitLanguage, CommitLanguages} from '../github-api/commits-per-language';
 import {createDonutChartCard} from '../templates/donut-chart-card';
 import {writeSVG} from '../utils/file-writer';
@@ -16,16 +16,18 @@ export const getCommitsLanguageSVGWithThemeName = async function (
     username: string,
     themeName: string,
     exclude: Array<string>,
-    token: string
+    token: string,
+    override?: ThemeColorOverride
 ): Promise<string> {
     if (!ThemeMap.has(themeName)) throw new Error('Theme does not exist');
     const langData = await getCommitsLanguageData(username, exclude, token);
-    return getCommitsLanguageSVG(langData, themeName);
+    return getCommitsLanguageSVG(langData, themeName, override);
 };
 
 const getCommitsLanguageSVG = function (
     langData: {name: string; value: number; color: string}[],
-    themeName: string
+    themeName: string,
+    override?: ThemeColorOverride
 ): string {
     if (langData.length == 0) {
         // Generic placeholder that fits inside the donut chart's legend space (~18 chars
@@ -42,7 +44,7 @@ const getCommitsLanguageSVG = function (
             color: '#586e75'
         });
     }
-    const svgString = createDonutChartCard('Top Languages by Commit', langData, ThemeMap.get(themeName)!);
+    const svgString = createDonutChartCard('Top Languages by Commit', langData, resolveTheme(themeName, override));
     return svgString;
 };
 

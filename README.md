@@ -107,6 +107,18 @@
   - username
   - utcOffset
 
+### Custom colors
+
+Every card endpoint also accepts these optional parameters to override individual colors of the selected `theme`:
+
+`title_color`, `text_color`, `bg_color`, `border_color`, `icon_color`, `chart_color`
+
+Values are hex **without** the leading `#` — 3, 4, 6, or 8 digits (the 4/8-digit forms include alpha). Anything else is ignored. For example, the `dark` theme with a transparent background:
+
+`http://github-profile-summary-cards.vercel.app/api/cards/stats?username=vn7n24fzkq&theme=dark&bg_color=00000000`
+
+Resolves [#110](https://github.com/vn7n24fzkq/github-profile-summary-cards/issues/110) and [#152](https://github.com/vn7n24fzkq/github-profile-summary-cards/issues/152).
+
 ---
 
 ## Organization cards
